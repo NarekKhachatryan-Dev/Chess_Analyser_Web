@@ -1,0 +1,10 @@
+build/
+CMakeUserPresets.json
+.vscode/
+.DS_Store
+*.swp
+*.log
+
+build/
+CMakeCache.txt
+CMakeFiles/
