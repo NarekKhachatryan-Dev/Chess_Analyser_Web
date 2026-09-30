@@ -1,36 +1,24 @@
 #include "chess_engine.h"
 
 #include <algorithm>
+#include <array>
 
 namespace chesslab {
 namespace {
 
-bool is_on_board(int square) {
+bool in_bounds(int square) {
     return square >= 0 && square < 64;
 }
 
-bool is_empty_or_enemy(const Position& position, int square, Color by_color) {
-    if (!is_on_board(square)) {
-        return false;
-    }
-    const Piece piece = position.board[square];
-    if (piece == Piece::Empty) {
-        return true;
-    }
-    return color_of(piece) != by_color;
-}
-
-void add_move(std::vector<Move>& moves, int from, int to, Color side, bool capture, bool ep, bool castle, bool double_push, PieceType promotion = PieceType::None) {
+void add_move(std::vector<Move>& moves, int from, int to, bool capture, bool en_passant = false,
+              PieceType promotion = PieceType::None) {
     Move move;
     move.from = from;
     move.to = to;
     move.is_capture = capture;
-    move.is_en_passant = ep;
-    move.is_castle = castle;
-    move.is_double_pawn_push = double_push;
+    move.is_en_passant = en_passant;
     move.promotion = promotion;
     moves.push_back(move);
-    (void)side;
 }
 
 }  // namespace
@@ -51,71 +39,74 @@ std::vector<Move> Position::generate_legal_moves() const {
 
         switch (type) {
             case PieceType::Pawn: {
-                const int step = square + (direction * 8);
-                if (is_on_board(step) && board[step] == Piece::Empty) {
-                    const int target_rank = rank_of(step);
-                    if (target_rank == 0 || target_rank == 7) {
-                        add_move(pseudo_moves, square, step, side_to_move, false, false, false, false, PieceType::Queen);
-                        add_move(pseudo_moves, square, step, side_to_move, false, false, false, false, PieceType::Rook);
-                        add_move(pseudo_moves, square, step, side_to_move, false, false, false, false, PieceType::Bishop);
-                        add_move(pseudo_moves, square, step, side_to_move, false, false, false, false, PieceType::Knight);
+                const int one_step = square + direction * 8;
+                if (in_bounds(one_step) && board[one_step] == Piece::Empty) {
+                    const bool promotion = (side_to_move == Color::White && rank_of(one_step) == 7) ||
+                                            (side_to_move == Color::Black && rank_of(one_step) == 0);
+                    if (promotion) {
+                        for (const PieceType promo : {PieceType::Queen, PieceType::Rook, PieceType::Bishop, PieceType::Knight}) {
+                            add_move(pseudo_moves, square, one_step, false, false, promo);
+                        }
                     } else {
-                        add_move(pseudo_moves, square, step, side_to_move, false, false, false, false);
+                        add_move(pseudo_moves, square, one_step, false);
                     }
 
                     const int start_rank = side_to_move == Color::White ? 1 : 6;
-                    if (rank == start_rank) {
-                        const int double_step = square + (direction * 16);
-                        if (is_on_board(double_step) && board[double_step] == Piece::Empty) {
-                            add_move(pseudo_moves, square, double_step, side_to_move, false, false, false, true);
-                        }
+                    const int two_step = square + direction * 16;
+                    if (rank == start_rank && board[one_step] == Piece::Empty && board[two_step] == Piece::Empty) {
+                        Move move;
+                        move.from = square;
+                        move.to = two_step;
+                        move.is_double_pawn_push = true;
+                        pseudo_moves.push_back(move);
                     }
                 }
 
                 for (int offset : {-1, 1}) {
-                    const int target = square + (direction * 8) + offset;
-                    if (!is_on_board(target)) {
+                    const int target_file = file + offset;
+                    if (target_file < 0 || target_file > 7) {
                         continue;
                     }
-                    if (file + offset < 0 || file + offset > 7) {
+                    const int target = square + direction * 8 + offset;
+                    if (!in_bounds(target)) {
                         continue;
                     }
 
-                    if (en_passant_square == target) {
-                        const int captured_square = target - (direction * 8);
+                    if (target == en_passant_square) {
+                        const int captured_square = target - direction * 8;
                         if (board[captured_square] != Piece::Empty && color_of(board[captured_square]) != side_to_move) {
-                            add_move(pseudo_moves, square, target, side_to_move, true, true, false, false);
+                            add_move(pseudo_moves, square, target, true, true);
                         }
+                        continue;
                     }
 
-                    if (board[target] != Piece::Empty && color_of(board[target]) != side_to_move) {
-                        const int target_rank = rank_of(target);
-                        if (target_rank == 0 || target_rank == 7) {
-                            add_move(pseudo_moves, square, target, side_to_move, true, false, false, false, PieceType::Queen);
-                            add_move(pseudo_moves, square, target, side_to_move, true, false, false, false, PieceType::Rook);
-                            add_move(pseudo_moves, square, target, side_to_move, true, false, false, false, PieceType::Bishop);
-                            add_move(pseudo_moves, square, target, side_to_move, true, false, false, false, PieceType::Knight);
+                    const Piece target_piece = board[target];
+                    if (target_piece != Piece::Empty && color_of(target_piece) != side_to_move) {
+                        const bool promotion = (side_to_move == Color::White && rank_of(target) == 7) ||
+                                                (side_to_move == Color::Black && rank_of(target) == 0);
+                        if (promotion) {
+                            for (const PieceType promo : {PieceType::Queen, PieceType::Rook, PieceType::Bishop, PieceType::Knight}) {
+                                add_move(pseudo_moves, square, target, true, false, promo);
+                            }
                         } else {
-                            add_move(pseudo_moves, square, target, side_to_move, true, false, false, false);
+                            add_move(pseudo_moves, square, target, true);
                         }
                     }
                 }
                 break;
             }
             case PieceType::Knight: {
-                static const int offsets[8][2] = {{1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}};
+                static constexpr int offsets[8][2] = {{1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}};
                 for (const auto& [df, dr] : offsets) {
-                    const int to = square + df + (dr * 8);
-                    if (!is_on_board(to)) {
+                    const int target_file = file + df;
+                    const int target_rank = rank + dr;
+                    if (target_file < 0 || target_file > 7 || target_rank < 0 || target_rank > 7) {
                         continue;
                     }
-                    const int to_file = file_of(to);
-                    const int to_rank = rank_of(to);
-                    if (std::abs(to_file - file) > 2 || std::abs(to_rank - rank) > 2) {
-                        continue;
-                    }
-                    if (board[to] == Piece::Empty || color_of(board[to]) != side_to_move) {
-                        add_move(pseudo_moves, square, to, side_to_move, board[to] != Piece::Empty, false, false, false);
+                    const int target = to_index(target_file, target_rank);
+                    const Piece target_piece = board[target];
+                    if (target_piece == Piece::Empty || color_of(target_piece) != side_to_move) {
+                        add_move(pseudo_moves, square, target, target_piece != Piece::Empty);
                     }
                 }
                 break;
@@ -123,65 +114,100 @@ std::vector<Move> Position::generate_legal_moves() const {
             case PieceType::Bishop:
             case PieceType::Rook:
             case PieceType::Queen: {
-                const int directions[8][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+                static constexpr int directions[8][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
                 for (const auto& [df, dr] : directions) {
-                    if ((type == PieceType::Bishop && (df == 0 || dr == 0)) || (type == PieceType::Rook && (std::abs(df) == 1 && std::abs(dr) == 1))) {
+                    bool allowed = false;
+                    switch (type) {
+                        case PieceType::Bishop:
+                            allowed = (df != 0 && dr != 0);
+                            break;
+                        case PieceType::Rook:
+                            allowed = (df == 0 || dr == 0);
+                            break;
+                        case PieceType::Queen:
+                            allowed = true;
+                            break;
+                        default:
+                            break;
+                    }
+                    if (!allowed) {
                         continue;
                     }
-                    int next = square + df + dr * 8;
-                    while (is_on_board(next)) {
-                        const int next_file = file_of(next);
-                        const int next_rank = rank_of(next);
-                        if (std::abs(next_file - file) > 7 || std::abs(next_rank - rank) > 7) {
-                            break;
-                        }
-                        if (board[next] == Piece::Empty) {
-                            add_move(pseudo_moves, square, next, side_to_move, false, false, false, false);
+
+                    int x = file + df;
+                    int y = rank + dr;
+                    while (x >= 0 && x < 8 && y >= 0 && y < 8) {
+                        const int target = to_index(x, y);
+                        const Piece target_piece = board[target];
+                        if (target_piece == Piece::Empty) {
+                            add_move(pseudo_moves, square, target, false);
                         } else {
-                            if (color_of(board[next]) != side_to_move) {
-                                add_move(pseudo_moves, square, next, side_to_move, true, false, false, false);
+                            if (color_of(target_piece) != side_to_move) {
+                                add_move(pseudo_moves, square, target, true);
                             }
                             break;
                         }
-                        next += df + dr * 8;
+                        x += df;
+                        y += dr;
                     }
                 }
                 break;
             }
             case PieceType::King: {
-                static const int eight[8][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-                for (const auto& [df, dr] : eight) {
-                    const int to = square + df + dr * 8;
-                    if (!is_on_board(to)) {
+                static constexpr int directions[8][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+                for (const auto& [df, dr] : directions) {
+                    const int target_file = file + df;
+                    const int target_rank = rank + dr;
+                    if (target_file < 0 || target_file > 7 || target_rank < 0 || target_rank > 7) {
                         continue;
                     }
-                    if (board[to] == Piece::Empty || color_of(board[to]) != side_to_move) {
-                        add_move(pseudo_moves, square, to, side_to_move, board[to] != Piece::Empty, false, false, false);
+                    const int target = to_index(target_file, target_rank);
+                    const Piece target_piece = board[target];
+                    if (target_piece == Piece::Empty || color_of(target_piece) != side_to_move) {
+                        add_move(pseudo_moves, square, target, target_piece != Piece::Empty);
                     }
                 }
 
-                const bool kingside = side_to_move == Color::White ? (castling_rights & static_cast<uint8_t>(CastlingRights::WhiteKingSide)) != 0 : (castling_rights & static_cast<uint8_t>(CastlingRights::BlackKingSide)) != 0;
-                const bool queenside = side_to_move == Color::White ? (castling_rights & static_cast<uint8_t>(CastlingRights::WhiteQueenSide)) != 0 : (castling_rights & static_cast<uint8_t>(CastlingRights::BlackQueenSide)) != 0;
+                const bool white_king_side = side_to_move == Color::White && (castling_rights & static_cast<uint8_t>(CastlingRights::WhiteKingSide)) != 0;
+                const bool white_queen_side = side_to_move == Color::White && (castling_rights & static_cast<uint8_t>(CastlingRights::WhiteQueenSide)) != 0;
+                const bool black_king_side = side_to_move == Color::Black && (castling_rights & static_cast<uint8_t>(CastlingRights::BlackKingSide)) != 0;
+                const bool black_queen_side = side_to_move == Color::Black && (castling_rights & static_cast<uint8_t>(CastlingRights::BlackQueenSide)) != 0;
 
-                if (square == to_index(4, side_to_move == Color::White ? 0 : 7) && !is_in_check(side_to_move)) {
-                    if (kingside) {
-                        const int rook_from = side_to_move == Color::White ? to_index(7, 0) : to_index(7, 7);
-                        const int rook_to = side_to_move == Color::White ? to_index(5, 0) : to_index(5, 7);
-                        const int through = side_to_move == Color::White ? to_index(5, 0) : to_index(5, 7);
-                        const int beyond = side_to_move == Color::White ? to_index(6, 0) : to_index(6, 7);
-                        if (board[rook_from] == (side_to_move == Color::White ? Piece::WhiteRook : Piece::BlackRook) && board[through] == Piece::Empty && board[beyond] == Piece::Empty && !is_square_attacked(*this, through, opposite(side_to_move)) && !is_square_attacked(*this, beyond, opposite(side_to_move))) {
-                            add_move(pseudo_moves, square, beyond, side_to_move, false, false, true, false);
-                        }
-                    }
-                    if (queenside) {
-                        const int rook_from = side_to_move == Color::White ? to_index(0, 0) : to_index(0, 7);
-                        const int rook_to = side_to_move == Color::White ? to_index(3, 0) : to_index(3, 7);
-                        const int through = side_to_move == Color::White ? to_index(3, 0) : to_index(3, 7);
-                        const int beyond = side_to_move == Color::White ? to_index(2, 0) : to_index(2, 7);
-                        if (board[rook_from] == (side_to_move == Color::White ? Piece::WhiteRook : Piece::BlackRook) && board[to_index(1, side_to_move == Color::White ? 0 : 7)] == Piece::Empty && board[through] == Piece::Empty && board[beyond] == Piece::Empty && !is_square_attacked(*this, through, opposite(side_to_move)) && !is_square_attacked(*this, beyond, opposite(side_to_move))) {
-                            add_move(pseudo_moves, square, beyond, side_to_move, false, false, true, false);
-                        }
-                    }
+                if (white_king_side && square == 4 && board[5] == Piece::Empty && board[6] == Piece::Empty && board[7] == piece_from(Color::White, PieceType::Rook) &&
+                    !is_square_attacked(*this, 4, Color::Black) && !is_square_attacked(*this, 5, Color::Black) && !is_square_attacked(*this, 6, Color::Black)) {
+                    Move castle_move;
+                    castle_move.from = 4;
+                    castle_move.to = 6;
+                    castle_move.is_castle = true;
+                    castle_move.is_king_side_castle = true;
+                    pseudo_moves.push_back(castle_move);
+                }
+                if (white_queen_side && square == 4 && board[1] == Piece::Empty && board[2] == Piece::Empty && board[3] == Piece::Empty && board[0] == piece_from(Color::White, PieceType::Rook) &&
+                    !is_square_attacked(*this, 4, Color::Black) && !is_square_attacked(*this, 3, Color::Black) && !is_square_attacked(*this, 2, Color::Black)) {
+                    Move castle_move;
+                    castle_move.from = 4;
+                    castle_move.to = 2;
+                    castle_move.is_castle = true;
+                    castle_move.is_queen_side_castle = true;
+                    pseudo_moves.push_back(castle_move);
+                }
+                if (black_king_side && square == 60 && board[61] == Piece::Empty && board[62] == Piece::Empty && board[63] == piece_from(Color::Black, PieceType::Rook) &&
+                    !is_square_attacked(*this, 60, Color::White) && !is_square_attacked(*this, 61, Color::White) && !is_square_attacked(*this, 62, Color::White)) {
+                    Move castle_move;
+                    castle_move.from = 60;
+                    castle_move.to = 62;
+                    castle_move.is_castle = true;
+                    castle_move.is_king_side_castle = true;
+                    pseudo_moves.push_back(castle_move);
+                }
+                if (black_queen_side && square == 60 && board[57] == Piece::Empty && board[58] == Piece::Empty && board[59] == Piece::Empty && board[56] == piece_from(Color::Black, PieceType::Rook) &&
+                    !is_square_attacked(*this, 60, Color::White) && !is_square_attacked(*this, 59, Color::White) && !is_square_attacked(*this, 58, Color::White)) {
+                    Move castle_move;
+                    castle_move.from = 60;
+                    castle_move.to = 58;
+                    castle_move.is_castle = true;
+                    castle_move.is_queen_side_castle = true;
+                    pseudo_moves.push_back(castle_move);
                 }
                 break;
             }

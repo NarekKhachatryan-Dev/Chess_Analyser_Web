@@ -8,3 +8,5 @@ CMakeUserPresets.json
 build/
 CMakeCache.txt
 CMakeFiles/
+
+build_release/

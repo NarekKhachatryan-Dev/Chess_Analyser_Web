@@ -12,9 +12,8 @@ char piece_to_char(Piece piece) {
         return ' ';
     }
 
-    const PieceType type = piece_type(piece);
     char base = ' ';
-    switch (type) {
+    switch (piece_type(piece)) {
         case PieceType::Pawn:
             base = 'p';
             break;
@@ -73,16 +72,47 @@ std::string square_to_algebraic(int square) {
 }  // namespace
 
 Position::Position() {
-    *this = from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    board.fill(Piece::Empty);
+    side_to_move = Color::White;
+    en_passant_square = -1;
+    castling_rights = static_cast<uint8_t>(CastlingRights::WhiteKingSide | CastlingRights::WhiteQueenSide |
+                                          CastlingRights::BlackKingSide | CastlingRights::BlackQueenSide);
+    halfmove_clock = 0;
+    fullmove_count = 1;
+    history.clear();
+
+    board[0] = piece_from(Color::White, PieceType::Rook);
+    board[1] = piece_from(Color::White, PieceType::Knight);
+    board[2] = piece_from(Color::White, PieceType::Bishop);
+    board[3] = piece_from(Color::White, PieceType::Queen);
+    board[4] = piece_from(Color::White, PieceType::King);
+    board[5] = piece_from(Color::White, PieceType::Bishop);
+    board[6] = piece_from(Color::White, PieceType::Knight);
+    board[7] = piece_from(Color::White, PieceType::Rook);
+    for (int i = 8; i < 16; ++i) {
+        board[i] = piece_from(Color::White, PieceType::Pawn);
+    }
+
+    board[56] = piece_from(Color::Black, PieceType::Rook);
+    board[57] = piece_from(Color::Black, PieceType::Knight);
+    board[58] = piece_from(Color::Black, PieceType::Bishop);
+    board[59] = piece_from(Color::Black, PieceType::Queen);
+    board[60] = piece_from(Color::Black, PieceType::King);
+    board[61] = piece_from(Color::Black, PieceType::Bishop);
+    board[62] = piece_from(Color::Black, PieceType::Knight);
+    board[63] = piece_from(Color::Black, PieceType::Rook);
+    for (int i = 48; i < 56; ++i) {
+        board[i] = piece_from(Color::Black, PieceType::Pawn);
+    }
 }
 
 Position Position::from_fen(const std::string& fen) {
-    Position position;
-    position.board.fill(Piece::Empty);
-    position.en_passant_square = -1;
-    position.castling_rights = static_cast<uint8_t>(CastlingRights::NoCastling);
-    position.halfmove_clock = 0;
-    position.fullmove_count = 1;
+    Position pos;
+    pos.board.fill(Piece::Empty);
+    pos.en_passant_square = -1;
+    pos.castling_rights = static_cast<uint8_t>(CastlingRights::NoCastling);
+    pos.halfmove_clock = 0;
+    pos.fullmove_count = 1;
 
     std::istringstream stream(fen);
     std::string board_part;
@@ -93,7 +123,7 @@ Position Position::from_fen(const std::string& fen) {
     std::string fullmove_part;
 
     if (!(stream >> board_part >> side_part >> castling_part >> en_passant_part >> halfmove_part >> fullmove_part)) {
-        throw std::invalid_argument("Invalid FEN string: missing fields");
+        throw std::invalid_argument("Invalid FEN string");
     }
 
     int file = 0;
@@ -109,26 +139,26 @@ Position Position::from_fen(const std::string& fen) {
             continue;
         }
         if (file >= 0 && file < 8 && rank >= 0 && rank < 8) {
-            position.board[to_index(file, rank)] = char_to_piece(ch);
+            pos.board[to_index(file, rank)] = char_to_piece(ch);
             ++file;
         }
     }
 
-    position.side_to_move = (side_part == "w") ? Color::White : Color::Black;
+    pos.side_to_move = side_part == "w" ? Color::White : Color::Black;
 
     for (char ch : castling_part) {
         switch (ch) {
             case 'K':
-                position.castling_rights |= static_cast<uint8_t>(CastlingRights::WhiteKingSide);
+                pos.castling_rights |= static_cast<uint8_t>(CastlingRights::WhiteKingSide);
                 break;
             case 'Q':
-                position.castling_rights |= static_cast<uint8_t>(CastlingRights::WhiteQueenSide);
+                pos.castling_rights |= static_cast<uint8_t>(CastlingRights::WhiteQueenSide);
                 break;
             case 'k':
-                position.castling_rights |= static_cast<uint8_t>(CastlingRights::BlackKingSide);
+                pos.castling_rights |= static_cast<uint8_t>(CastlingRights::BlackKingSide);
                 break;
             case 'q':
-                position.castling_rights |= static_cast<uint8_t>(CastlingRights::BlackQueenSide);
+                pos.castling_rights |= static_cast<uint8_t>(CastlingRights::BlackQueenSide);
                 break;
             default:
                 break;
@@ -136,14 +166,12 @@ Position Position::from_fen(const std::string& fen) {
     }
 
     if (en_passant_part != "-") {
-        const int ep_file = en_passant_part[0] - 'a';
-        const int ep_rank = en_passant_part[1] - '1';
-        position.en_passant_square = to_index(ep_file, ep_rank);
+        pos.en_passant_square = to_index(en_passant_part[0] - 'a', en_passant_part[1] - '1');
     }
 
-    position.halfmove_clock = std::stoi(halfmove_part);
-    position.fullmove_count = std::stoi(fullmove_part);
-    return position;
+    pos.halfmove_clock = std::stoi(halfmove_part);
+    pos.fullmove_count = std::stoi(fullmove_part);
+    return pos;
 }
 
 std::string Position::to_fen() const {
@@ -216,12 +244,11 @@ void Position::make_move(const Move& move) {
     state.castling_rights = castling_rights;
     state.halfmove_clock = halfmove_clock;
     state.fullmove_count = fullmove_count;
-    state.was_castle = move.is_castle;
     state.was_en_passant = move.is_en_passant;
-    state.rook_from = -1;
-    state.rook_to = -1;
 
-    const int direction = side_to_move == Color::White ? 1 : -1;
+    const Color mover = color_of(moving_piece);
+    const int direction = mover == Color::White ? 1 : -1;
+
     if (move.is_en_passant) {
         state.captured_square = move.to - direction * 8;
         state.captured_piece = board[state.captured_square];
@@ -229,74 +256,78 @@ void Position::make_move(const Move& move) {
         state.captured_piece = board[move.to];
     }
 
-    // Remove moving piece and captured pawn if needed.
+    const auto clear_rights = [&](bool white_king_side, bool white_queen_side, bool black_king_side, bool black_queen_side) {
+        if (white_king_side) {
+            castling_rights &= static_cast<uint8_t>(~CastlingRights::WhiteKingSide);
+        }
+        if (white_queen_side) {
+            castling_rights &= static_cast<uint8_t>(~CastlingRights::WhiteQueenSide);
+        }
+        if (black_king_side) {
+            castling_rights &= static_cast<uint8_t>(~CastlingRights::BlackKingSide);
+        }
+        if (black_queen_side) {
+            castling_rights &= static_cast<uint8_t>(~CastlingRights::BlackQueenSide);
+        }
+    };
+
+    if (piece_type(moving_piece) == PieceType::King) {
+        if (mover == Color::White) {
+            clear_rights(true, true, false, false);
+        } else {
+            clear_rights(false, false, true, true);
+        }
+    }
+
+    if (piece_type(moving_piece) == PieceType::Rook) {
+        const int rook_from = move.from;
+        if (rook_from == 0) {
+            clear_rights(false, true, false, false);
+        } else if (rook_from == 7) {
+            clear_rights(true, false, false, false);
+        } else if (rook_from == 56) {
+            clear_rights(false, false, false, true);
+        } else if (rook_from == 63) {
+            clear_rights(false, false, true, false);
+        }
+    }
+
+    if (state.captured_piece != Piece::Empty && piece_type(state.captured_piece) == PieceType::Rook) {
+        if (move.to == 0) {
+            clear_rights(false, true, false, false);
+        } else if (move.to == 7) {
+            clear_rights(true, false, false, false);
+        } else if (move.to == 56) {
+            clear_rights(false, false, false, true);
+        } else if (move.to == 63) {
+            clear_rights(false, false, true, false);
+        }
+    }
+
+    if (move.is_castle) {
+        const bool king_side = move.is_king_side_castle;
+        if (mover == Color::White) {
+            const int rook_from = king_side ? 7 : 0;
+            const int rook_to = king_side ? 5 : 3;
+            board[rook_from] = Piece::Empty;
+            board[rook_to] = piece_from(Color::White, PieceType::Rook);
+            clear_rights(true, true, false, false);
+        } else {
+            const int rook_from = king_side ? 63 : 56;
+            const int rook_to = king_side ? 61 : 59;
+            board[rook_from] = Piece::Empty;
+            board[rook_to] = piece_from(Color::Black, PieceType::Rook);
+            clear_rights(false, false, true, true);
+        }
+    }
+
     board[move.from] = Piece::Empty;
     if (move.is_en_passant) {
         board[state.captured_square] = Piece::Empty;
     }
-
-    if (move.is_castle) {
-        if (move.to == to_index(6, 0)) {
-            state.rook_from = to_index(7, 0);
-            state.rook_to = to_index(5, 0);
-            board[state.rook_from] = Piece::Empty;
-            board[state.rook_to] = Piece::WhiteRook;
-        } else if (move.to == to_index(2, 0)) {
-            state.rook_from = to_index(0, 0);
-            state.rook_to = to_index(3, 0);
-            board[state.rook_from] = Piece::Empty;
-            board[state.rook_to] = Piece::WhiteRook;
-        } else if (move.to == to_index(6, 7)) {
-            state.rook_from = to_index(7, 7);
-            state.rook_to = to_index(5, 7);
-            board[state.rook_from] = Piece::Empty;
-            board[state.rook_to] = Piece::BlackRook;
-        } else if (move.to == to_index(2, 7)) {
-            state.rook_from = to_index(0, 7);
-            state.rook_to = to_index(3, 7);
-            board[state.rook_from] = Piece::Empty;
-            board[state.rook_to] = Piece::BlackRook;
-        }
-    }
-
-    // Place the moved piece at destination.
     board[move.to] = moving_piece;
     if (move.promotion != PieceType::None) {
-        board[move.to] = piece_from(side_to_move, move.promotion);
-    }
-
-    if (moving_piece == Piece::WhiteKing) {
-        castling_rights &= static_cast<uint8_t>(~(CastlingRights::WhiteKingSide | CastlingRights::WhiteQueenSide));
-    } else if (moving_piece == Piece::BlackKing) {
-        castling_rights &= static_cast<uint8_t>(~(CastlingRights::BlackKingSide | CastlingRights::BlackQueenSide));
-    }
-
-    if (moving_piece == Piece::WhiteRook && move.from == to_index(0, 0)) {
-        castling_rights &= static_cast<uint8_t>(~CastlingRights::WhiteQueenSide);
-    }
-    if (moving_piece == Piece::WhiteRook && move.from == to_index(7, 0)) {
-        castling_rights &= static_cast<uint8_t>(~CastlingRights::WhiteKingSide);
-    }
-    if (moving_piece == Piece::BlackRook && move.from == to_index(0, 7)) {
-        castling_rights &= static_cast<uint8_t>(~CastlingRights::BlackQueenSide);
-    }
-    if (moving_piece == Piece::BlackRook && move.from == to_index(7, 7)) {
-        castling_rights &= static_cast<uint8_t>(~CastlingRights::BlackKingSide);
-    }
-
-    if (state.captured_piece != Piece::Empty) {
-        if (state.captured_piece == Piece::WhiteRook && state.captured_square == to_index(0, 0)) {
-            castling_rights &= static_cast<uint8_t>(~CastlingRights::WhiteQueenSide);
-        }
-        if (state.captured_piece == Piece::WhiteRook && state.captured_square == to_index(7, 0)) {
-            castling_rights &= static_cast<uint8_t>(~CastlingRights::WhiteKingSide);
-        }
-        if (state.captured_piece == Piece::BlackRook && state.captured_square == to_index(0, 7)) {
-            castling_rights &= static_cast<uint8_t>(~CastlingRights::BlackQueenSide);
-        }
-        if (state.captured_piece == Piece::BlackRook && state.captured_square == to_index(7, 7)) {
-            castling_rights &= static_cast<uint8_t>(~CastlingRights::BlackKingSide);
-        }
+        board[move.to] = piece_from(mover, move.promotion);
     }
 
     if (move.is_double_pawn_push) {
@@ -311,12 +342,12 @@ void Position::make_move(const Move& move) {
         ++halfmove_clock;
     }
 
-    if (side_to_move == Color::Black) {
+    if (mover == Color::Black) {
         ++fullmove_count;
     }
 
     history.push_back(state);
-    side_to_move = opposite(side_to_move);
+    side_to_move = opposite(mover);
 }
 
 void Position::unmake_move() {
@@ -327,27 +358,33 @@ void Position::unmake_move() {
     const UndoState state = history.back();
     history.pop_back();
 
-    // Restore board state.
     board[state.from] = state.moved_piece;
     if (state.was_en_passant) {
         board[state.to] = Piece::Empty;
         board[state.captured_square] = state.captured_piece;
-    } else if (state.captured_piece != Piece::Empty) {
-        board[state.to] = state.captured_piece;
     } else {
-        board[state.to] = Piece::Empty;
+        board[state.to] = state.captured_piece != Piece::Empty ? state.captured_piece : Piece::Empty;
     }
 
-    if (state.was_castle && state.rook_from != -1 && state.rook_to != -1) {
-        board[state.rook_from] = board[state.rook_to];
-        board[state.rook_to] = Piece::Empty;
+    if (piece_type(state.moved_piece) == PieceType::King && state.from == 4 && (state.to == 6 || state.to == 2)) {
+        const bool king_side = state.to == 6;
+        const int rook_from = king_side ? 5 : 3;
+        const int rook_to = king_side ? 7 : 0;
+        board[rook_from] = Piece::Empty;
+        board[rook_to] = piece_from(Color::White, PieceType::Rook);
+    } else if (piece_type(state.moved_piece) == PieceType::King && state.from == 60 && (state.to == 62 || state.to == 58)) {
+        const bool king_side = state.to == 62;
+        const int rook_from = king_side ? 61 : 59;
+        const int rook_to = king_side ? 63 : 56;
+        board[rook_from] = Piece::Empty;
+        board[rook_to] = piece_from(Color::Black, PieceType::Rook);
     }
 
     en_passant_square = state.en_passant_square;
     castling_rights = state.castling_rights;
     halfmove_clock = state.halfmove_clock;
     fullmove_count = state.fullmove_count;
-    side_to_move = opposite(side_to_move);
+    side_to_move = color_of(state.moved_piece);
 }
 
 }  // namespace chesslab

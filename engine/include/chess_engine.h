@@ -16,18 +16,18 @@ enum class Color : uint8_t { White, Black };
 enum class PieceType : uint8_t { Pawn, Knight, Bishop, Rook, Queen, King, None };
 enum class Piece : uint8_t {
     Empty = 0,
-    WhitePawn,
-    WhiteKnight,
-    WhiteBishop,
-    WhiteRook,
-    WhiteQueen,
-    WhiteKing,
-    BlackPawn,
-    BlackKnight,
-    BlackBishop,
-    BlackRook,
-    BlackQueen,
-    BlackKing
+    WhitePawn = 1,
+    WhiteKnight = 2,
+    WhiteBishop = 3,
+    WhiteRook = 4,
+    WhiteQueen = 5,
+    WhiteKing = 6,
+    BlackPawn = 7,
+    BlackKnight = 8,
+    BlackBishop = 9,
+    BlackRook = 10,
+    BlackQueen = 11,
+    BlackKing = 12
 };
 
 enum CastlingRights : uint8_t {
@@ -38,23 +38,20 @@ enum CastlingRights : uint8_t {
     BlackQueenSide = 1 << 3
 };
 
-constexpr Piece piece_from(Color color, PieceType type) {
+inline constexpr Piece piece_from(Color color, PieceType type) {
     if (type == PieceType::None) {
         return Piece::Empty;
     }
-    const int index = static_cast<int>(type) + 1;
-    if (color == Color::White) {
-        return static_cast<Piece>(index);
-    }
-    return static_cast<Piece>(index + 6);
+    const int value = static_cast<int>(type) + 1;
+    return color == Color::White ? static_cast<Piece>(value) : static_cast<Piece>(value + 6);
 }
 
 inline bool is_white_piece(Piece piece) {
-    return piece != Piece::Empty && static_cast<int>(piece) <= static_cast<int>(Piece::WhiteKing);
+    return piece >= Piece::WhitePawn && piece <= Piece::WhiteKing;
 }
 
 inline bool is_black_piece(Piece piece) {
-    return piece != Piece::Empty && static_cast<int>(piece) >= static_cast<int>(Piece::BlackPawn);
+    return piece >= Piece::BlackPawn && piece <= Piece::BlackKing;
 }
 
 inline Color color_of(Piece piece) {
@@ -75,7 +72,7 @@ inline PieceType piece_type(Piece piece) {
     return static_cast<PieceType>(value - 7);
 }
 
-inline Color opposite(Color side) {
+inline constexpr Color opposite(Color side) {
     return side == Color::White ? Color::Black : Color::White;
 }
 
@@ -99,19 +96,8 @@ struct Move {
     bool is_en_passant = false;
     bool is_castle = false;
     bool is_double_pawn_push = false;
-
-    static Move normal(int from_square, int to_square) {
-        Move move;
-        move.from = from_square;
-        move.to = to_square;
-        return move;
-    }
-
-    static Move capture(int from_square, int to_square) {
-        Move move = normal(from_square, to_square);
-        move.is_capture = true;
-        return move;
-    }
+    bool is_king_side_castle = false;
+    bool is_queen_side_castle = false;
 };
 
 class Position {
@@ -126,10 +112,7 @@ public:
         uint8_t castling_rights = 0;
         int halfmove_clock = 0;
         int fullmove_count = 1;
-        bool was_castle = false;
         bool was_en_passant = false;
-        int rook_from = -1;
-        int rook_to = -1;
     };
 
     std::array<Piece, 64> board{};

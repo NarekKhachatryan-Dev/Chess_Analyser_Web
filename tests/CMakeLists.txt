@@ -1,5 +1,6 @@
 add_executable(chess_tests
     dummy_test.cpp
+    perft_test.cpp
 )
 
 target_link_libraries(chess_tests PRIVATE doctest::doctest chess_engine)
