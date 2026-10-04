@@ -1,6 +1,6 @@
-# ChessLab
+# ChessSolver
 
-This repository is the skeleton for the ChessLab diploma project.
+ChessSolver is a C++17 chess mate-in-N solver with a web interface.
 
 ## Build
 
@@ -10,6 +10,6 @@ cmake --build build -j
 ctest --test-dir build --output-on-failure
 ```
 
-## Phase status
-
-- Phase 1: project skeleton and build setup complete.
+The engine currently provides legal move generation, perft, checkmate/stalemate
+detection, and position validation. The desktop/SFML prototype is retained in
+the repository for review but is no longer part of the active build.

@@ -76,6 +76,14 @@ TEST_CASE("perft position 4") {
     });
 }
 
+TEST_CASE("perft color-mirrored position 4") {
+    check_perft_case({
+        "color-mirrored position 4",
+        "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1",
+        {6, 264, 9467, 422333},
+    });
+}
+
 TEST_CASE("perft position 5") {
     check_perft_case({
         "position 5",

@@ -4,6 +4,7 @@ add_library(chess_engine STATIC
     src/attacks.cpp
     src/movegen.cpp
     src/perft.cpp
+    src/rules.cpp
 )
 
 target_include_directories(chess_engine

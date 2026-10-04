@@ -7,7 +7,7 @@
 
 namespace chesslab {
 
-inline constexpr const char* kProjectName = "ChessLab";
+inline constexpr const char* kProjectName = "ChessSolver";
 inline constexpr int kEngineVersion = 1;
 
 int engine_version();
@@ -100,6 +100,11 @@ struct Move {
     bool is_queen_side_castle = false;
 };
 
+struct ValidationResult {
+    bool valid = true;
+    std::vector<std::string> errors;
+};
+
 class Position {
 public:
     struct UndoState {
@@ -137,6 +142,9 @@ private:
 };
 
 bool is_square_attacked(const Position& position, int square, Color by_color);
+bool is_checkmate(const Position& position);
+bool is_stalemate(const Position& position);
+ValidationResult validate_position(const Position& position);
 uint64_t perft(Position& position, int depth);
 
 }  // namespace chesslab

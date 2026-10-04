@@ -18,21 +18,6 @@ else()
 endif()
 
 FetchContent_Declare(
-    SFML
-    GIT_REPOSITORY https://github.com/SFML/SFML.git
-    GIT_TAG 3.0.0
-)
-
-set(SFML_BUILD_WINDOW ON)
-set(SFML_BUILD_GRAPHICS ON)
-set(SFML_BUILD_AUDIO OFF)
-set(SFML_BUILD_NETWORK OFF)
-set(SFML_BUILD_SYSTEM ON)
-set(SFML_BUILD_TEST_SUITE OFF)
-
-FetchContent_MakeAvailable(SFML)
-
-FetchContent_Declare(
     doctest
     GIT_REPOSITORY https://github.com/doctest/doctest.git
     GIT_TAG v2.4.11
@@ -41,6 +26,5 @@ FetchContent_MakeAvailable(doctest)
 
 add_subdirectory(engine)
 add_subdirectory(cli)
-add_subdirectory(desktop)
 add_subdirectory(web)
 add_subdirectory(tests)
