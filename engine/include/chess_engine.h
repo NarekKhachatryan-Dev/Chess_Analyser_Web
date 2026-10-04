@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -105,6 +106,26 @@ struct ValidationResult {
     std::vector<std::string> errors;
 };
 
+enum class SolveStatus : uint8_t { MateFound, NoMateWithinN, NoLegalMoves, Cancelled, TimedOut };
+
+struct SolveOptions {
+    const std::atomic_bool* cancel = nullptr;
+    uint64_t time_limit_ms = 0;
+    bool use_move_ordering = false;
+    bool use_transposition_table = false;
+    uint64_t transposition_table_size_mb = 64;
+};
+
+struct SolveResult {
+    SolveStatus status = SolveStatus::NoMateWithinN;
+    int length = 0;
+    uint64_t nodes = 0;
+    uint64_t elapsed_ms = 0;
+    std::vector<Move> line;
+};
+
+std::string move_to_uci(const Move& move);
+
 class Position {
 public:
     struct UndoState {
@@ -145,6 +166,8 @@ bool is_square_attacked(const Position& position, int square, Color by_color);
 bool is_checkmate(const Position& position);
 bool is_stalemate(const Position& position);
 ValidationResult validate_position(const Position& position);
+SolveResult solve_depth(Position& position, int mate_in, const SolveOptions& options = {});
+SolveResult solve(Position& position, int max_mate_in, const SolveOptions& options = {});
 uint64_t perft(Position& position, int depth);
 
 }  // namespace chesslab

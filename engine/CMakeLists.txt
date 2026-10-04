@@ -6,6 +6,7 @@ add_library(chess_engine STATIC
     src/movegen.cpp
     src/perft.cpp
     src/rules.cpp
+    src/mate_solver.cpp
 )
 
 target_include_directories(chess_engine
