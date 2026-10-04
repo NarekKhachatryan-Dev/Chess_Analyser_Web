@@ -92,23 +92,27 @@ def main() -> int:
             stockfish.stdin.write(f"position fen {fen}\n")
             stockfish.stdin.flush()
             stockfish_mate, stockfish_move = read_stockfish(stockfish, requested_mate)
-            if cli.returncode != 0 or solver_status != "NoMateWithinN" or solver_mate != stockfish_mate:
+            if args.negative:
+                agrees = (
+                    cli.returncode == 0
+                    and solver_status == "NoMateWithinN"
+                    and stockfish_mate is None
+                )
+                description = f"no mate at N={requested_mate}"
+            else:
+                agrees = (
+                    cli.returncode == 0
+                    and solver_status == "MateFound"
+                    and solver_mate == stockfish_mate
+                )
+                description = f"mate in {requested_mate}"
+            if agrees:
+                print(f"{puzzle_id}: {description}")
+            else:
                 disagreements.append(
                     f"{puzzle_id}: solver={cli.stdout.strip()!r}, "
                     f"stockfish_mate={stockfish_mate}, stockfish_bestmove={stockfish_move}"
                 )
-            elif args.negative and solver_mate is not None:
-                disagreements.append(
-                    f"{puzzle_id}: expected no mate at N={requested_mate}, "
-                    f"solver reported mate {solver_mate}, Stockfish bestmove {stockfish_move}"
-                )
-            elif args.negative and stockfish_mate is not None:
-                disagreements.append(
-                    f"{puzzle_id}: expected no mate at N={requested_mate}, "
-                    f"Stockfish reported mate {stockfish_mate}, solver={cli.stdout.strip()!r}"
-                )
-            else:
-                print(f"{puzzle_id}: no mate at N={requested_mate}")
 
         stockfish.stdin.write("quit\n")
         stockfish.stdin.flush()

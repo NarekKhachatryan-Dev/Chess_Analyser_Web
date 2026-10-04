@@ -40,6 +40,7 @@ let ready = false;
 let pendingAction;
 let readyTimer;
 let boardFlipped = false;
+let initialSide = "w";
 
 function parseFen(fen) {
   const fields = fen.trim().split(/\s+/);
@@ -157,7 +158,7 @@ function currentEditorFen() {
 function updateNavigation() {
   previousButton.disabled = solutionIndex === 0;
   nextButton.disabled = solutionIndex >= solution.length;
-  moveCount.textContent = `Move ${solutionIndex} of ${solution.length}`;
+  moveCount.textContent = `Step ${solutionIndex} of ${solution.length}`;
 }
 
 function showSolutionPosition() {
@@ -166,9 +167,19 @@ function showSolutionPosition() {
 }
 
 function showLine() {
-  lineElement.textContent = solution
-    .map((move, index) => `${index + 1}. ${move}`)
-    .join(" ");
+  const parts = [];
+  let moveNumber = 1;
+  let index = 0;
+  if (initialSide === "b" && solution.length > 0) {
+    parts.push(`${moveNumber}... ${solution[index++]}`);
+    moveNumber += 1;
+  }
+  while (index < solution.length) {
+    parts.push(`${moveNumber}. ${solution[index++]}`);
+    if (index < solution.length) parts.push(solution[index++]);
+    moveNumber += 1;
+  }
+  lineElement.textContent = parts.join(" ");
 }
 
 function friendlyResult(result) {
@@ -295,6 +306,7 @@ solveButton.onclick = () => {
   clearAnalysis();
   resultElement.className = "";
   initialBoard = board.slice();
+  initialSide = sideElement.value;
   solution = [];
   solutionIndex = 0;
   updateNavigation();

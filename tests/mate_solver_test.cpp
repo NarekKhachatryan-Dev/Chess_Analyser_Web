@@ -35,6 +35,16 @@ TEST_CASE("real Lichess mate-in-3 puzzle UjZa9") {
     CHECK(chesslab::move_to_uci(result.line.front()) == "g6g3");
 }
 
+TEST_CASE("stalemate avoidance") {
+    const auto result = solve_fen("8/8/2Q5/3B4/1K6/2P5/Nk6/2R5 w - - 0 1", 2);
+    CHECK(result.status == chesslab::SolveStatus::MateFound);
+    CHECK(result.length == 2);
+    REQUIRE(result.line.size() == 3);
+    CHECK(chesslab::move_to_uci(result.line[0]) == "d5h1");
+    CHECK(chesslab::move_to_uci(result.line[1]) == "b2a2");
+    CHECK(chesslab::move_to_uci(result.line[2]) == "c6g2");
+}
+
 TEST_CASE("optimized solver preserves the real puzzle result") {
     auto position = chesslab::Position::from_fen(
         "6rk/p6p/1p2Qpr1/8/3PRP2/q5P1/7P/4R1K1 b - - 0 27");
