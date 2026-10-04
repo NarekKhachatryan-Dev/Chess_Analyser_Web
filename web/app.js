@@ -28,6 +28,7 @@ const filesElement = document.querySelector("#files");
 const ranksElement = document.querySelector("#ranks");
 const depthInput = document.querySelector("#depth");
 const depthError = document.querySelector("#depth-error");
+const moveCount = document.querySelector("#move-count");
 const startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 let board = Array(64).fill(".");
 let selectedPiece = ".";
@@ -79,6 +80,7 @@ function renderBoard() {
     const square = document.createElement("button");
     const piece = board[index];
     square.className = `square ${(Math.floor(index / 8) + index) % 2 ? "dark" : "light"}`;
+    square.dataset.square = index;
     if (imageNames[piece]) {
       const image = document.createElement("img");
       image.src = `assets/${imageNames[piece]}.png`;
@@ -90,10 +92,18 @@ function renderBoard() {
       board[index] = selectedPiece;
       fenInput.value = boardFen();
       clearPositionMessages();
+      clearAnalysis();
       renderBoard();
     };
     boardElement.append(square);
   });
+  if (solutionIndex > 0 && solutionIndex <= solution.length) {
+    const move = solution[solutionIndex - 1];
+    const from = (move.charCodeAt(0) - 97) + (Number(move[1]) - 1) * 8;
+    const to = (move.charCodeAt(2) - 97) + (Number(move[3]) - 1) * 8;
+    boardElement.querySelector(`[data-square="${from}"]`)?.classList.add("last-from");
+    boardElement.querySelector(`[data-square="${to}"]`)?.classList.add("last-to");
+  }
   filesElement.replaceChildren(...(boardFlipped ? [..."hgfedcba"] : [..."abcdefgh"]).map((file) => {
     const label = document.createElement("span");
     label.textContent = file;
@@ -147,6 +157,7 @@ function currentEditorFen() {
 function updateNavigation() {
   previousButton.disabled = solutionIndex === 0;
   nextButton.disabled = solutionIndex >= solution.length;
+  moveCount.textContent = `Move ${solutionIndex} of ${solution.length}`;
 }
 
 function showSolutionPosition() {
@@ -311,6 +322,11 @@ nextButton.onclick = () => {
   showSolutionPosition();
   updateNavigation();
 };
+document.addEventListener("keydown", (event) => {
+  if (event.target instanceof Element && event.target.matches("input, select, textarea")) return;
+  if (event.key === "ArrowLeft" && !previousButton.disabled) previousButton.click();
+  if (event.key === "ArrowRight" && !nextButton.disabled) nextButton.click();
+});
 fenInput.onchange = () => {
   try {
     parseFen(fenInput.value);

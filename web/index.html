@@ -19,28 +19,39 @@
           </div>
           <div id="files" class="files" aria-hidden="true"></div>
         </div>
-        <div class="controls">
-          <h2>Piece palette</h2>
-          <div id="palette"></div>
-          <button id="clear-board" type="button">Clear board</button>
-          <button id="start-position" type="button">Start position</button>
-          <label>Side to move
-            <select id="side"><option value="w">White</option><option value="b">Black</option></select>
-          </label>
-          <label>Castling rights <input id="castling" value="-"></label>
-          <label>En passant <input id="ep" value="-"></label>
-          <button id="validate">Validate</button>
-          <output id="validation"></output>
+        <div class="right-column">
+          <section class="solve-panel">
+            <h2>Solve</h2>
+            <label>Mate in N <input id="depth" type="number" min="1" max="5" value="3"></label>
+            <p id="depth-error" class="status error" role="alert"></p>
+            <div class="solve-actions">
+              <button id="solve" class="primary">Solve</button>
+              <button id="cancel" disabled>Cancel</button>
+            </div>
+            <p id="progress" aria-live="polite"></p>
+            <output id="result"></output>
+            <p id="line"></p>
+            <nav>
+              <button id="previous" disabled>Previous</button>
+              <span id="move-count" aria-live="polite">Move 0 of 0</span>
+              <button id="next" disabled>Next</button>
+            </nav>
+          </section>
+          <section class="controls">
+            <h2>Position editor</h2>
+            <div id="palette"></div>
+            <button id="clear-board" type="button">Clear board</button>
+            <button id="start-position" type="button">Start position</button>
+            <label>Side to move
+              <select id="side"><option value="w">White</option><option value="b">Black</option></select>
+            </label>
+            <label>Castling rights <input id="castling" value="-"></label>
+            <label>En passant <input id="ep" value="-"></label>
+            <button id="validate">Validate</button>
+            <output id="validation"></output>
+          </section>
         </div>
       </section>
-      <label>Mate in N <input id="depth" type="number" min="1" max="5" value="3"></label>
-      <p id="depth-error" class="status error" role="alert"></p>
-      <button id="solve" class="primary">Solve</button>
-      <button id="cancel" disabled>Cancel</button>
-      <p id="progress" aria-live="polite"></p>
-      <output id="result"></output>
-      <nav><button id="previous" disabled>Previous</button><button id="next" disabled>Next</button></nav>
-      <p id="line"></p>
     </main>
     <script type="module" src="app.js"></script>
   </body>
