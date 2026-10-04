@@ -55,6 +55,17 @@ mate-in-1, 30 mate-in-2, 20 mate-in-3, and 5 mate-in-4 positions. The
 automated Stockfish comparison completed all 85 fixtures with zero
 disagreements.
 
+## Debug build
+
+Measured with a clean MinGW Debug build on Windows:
+
+```text
+perft_start_d5 nodes=4865609 time_ms=13553
+solver_qeP68 no_tt_nodes=2710 no_tt_time_ms=259 tt_nodes=2655 tt_time_ms=275
+solver_46thE no_tt_nodes=62728 no_tt_time_ms=8270 tt_nodes=55027 tt_time_ms=5446
+solver_8dZpc no_tt_nodes=1223 no_tt_time_ms=112 tt_nodes=1211 tt_time_ms=100
+```
+
 ## Release build
 
 Command used:
@@ -66,7 +77,19 @@ ctest --test-dir build_release --output-on-failure
 .\build_release\cli\chess_cli.exe bench
 ```
 
-Start-position perft depth 5: **4,865,609 nodes in 1,532 ms**.
+Measured with a clean MinGW Release build on Windows:
+
+```text
+perft_start_d5 nodes=4865609 time_ms=2002
+solver_qeP68 no_tt_nodes=2710 no_tt_time_ms=45 tt_nodes=2655 tt_time_ms=49
+solver_46thE no_tt_nodes=62728 no_tt_time_ms=1333 tt_nodes=55027 tt_time_ms=880
+solver_8dZpc no_tt_nodes=1223 no_tt_time_ms=19 tt_nodes=1211 tt_time_ms=16
+```
+
+The node counts are stable across configurations; timings are machine- and
+build-dependent. Move ordering gives the large reduction in searched nodes
+compared with the plain search. The transposition table helps only a little on
+these three problems.
 
 The following harder real Lichess mate-in-4 fixtures are included in the
 corpus. The benchmark runs iterative deepening with move ordering, comparing
@@ -77,3 +100,14 @@ the same search with and without the capped transposition table.
 | `qeP68` | 2,710 | 32 ms | 2,655 | 32 ms |
 | `46thE` | 62,728 | 852 ms | 55,027 | 651 ms |
 | `8dZpc` | 1,223 | 12 ms | 1,211 | 11 ms |
+
+## WASM depth measurements
+
+The hard WASM fixture was measured during Phase 5. The values are rounded
+measurements, not a performance guarantee:
+
+| Requested mate depth | Result |
+|---:|---|
+| 4 | about 380 ms |
+| 5 | about 5.3 s |
+| 6 | 30 s timeout |
