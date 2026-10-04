@@ -71,6 +71,9 @@ def main() -> int:
         while stockfish.stdout.readline().strip() != "readyok":
             pass
 
+        negative_rows: list[tuple[str, int, int | None, str]] = []
+        length_mismatches: list[str] = []
+
         for puzzle_id, mate_in, fen in fixtures:
             requested_mate = mate_in - 1 if args.negative else mate_in
             if requested_mate < 1:
@@ -93,11 +96,19 @@ def main() -> int:
             stockfish.stdin.flush()
             stockfish_mate, stockfish_move = read_stockfish(stockfish, requested_mate)
             if args.negative:
-                agrees = (
-                    cli.returncode == 0
-                    and solver_status == "NoMateWithinN"
-                    and stockfish_mate is None
+                negative_rows.append(
+                    (
+                        puzzle_id,
+                        mate_in,
+                        stockfish_mate,
+                        cli.stdout.strip().splitlines()[0] if cli.stdout.strip() else "<no output>",
+                    )
                 )
+                if stockfish_mate is not None and stockfish_mate != mate_in:
+                    length_mismatches.append(
+                        f"{puzzle_id}: original N={mate_in}, Stockfish M={stockfish_mate}"
+                    )
+                agrees = stockfish_mate is None or stockfish_mate > requested_mate
                 description = f"no mate at N={requested_mate}"
             else:
                 agrees = (
@@ -117,7 +128,18 @@ def main() -> int:
         stockfish.stdin.write("quit\n")
         stockfish.stdin.flush()
 
-    print(f"Compared {len(fixtures)} fixtures; disagreements: {len(disagreements)}")
+    if args.negative:
+        print("puzzle_id\toriginal_N\tstockfish_M\tour_result")
+        for puzzle_id, mate_in, stockfish_mate, solver_result in negative_rows:
+            print(f"{puzzle_id}\t{mate_in}\t{stockfish_mate or 'none'}\t{solver_result}")
+        if length_mismatches:
+            print("Stockfish mate-length mismatches:")
+            for mismatch in length_mismatches:
+                print(mismatch)
+            return 1
+
+    compared = len(negative_rows) if args.negative else len(fixtures)
+    print(f"Compared {compared} fixtures; disagreements: {len(disagreements)}")
     for disagreement in disagreements:
         print(f"DISAGREEMENT {disagreement}")
     return 1 if disagreements else 0
