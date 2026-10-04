@@ -1,6 +1,7 @@
 add_library(chess_engine STATIC
-    src/engine_placeholder.cpp
     src/position.cpp
+    src/fen.cpp
+    src/make_unmake.cpp
     src/attacks.cpp
     src/movegen.cpp
     src/perft.cpp

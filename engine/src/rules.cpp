@@ -69,6 +69,36 @@ ValidationResult validate_position(const Position& position) {
         }
     }
 
+    const auto requires_piece = [&](uint8_t right, int square, Piece expected, const char* message) {
+        if ((position.castling_rights & right) != 0 && position.board[square] != expected) {
+            result.errors.emplace_back(message);
+        }
+    };
+    requires_piece(static_cast<uint8_t>(CastlingRights::WhiteKingSide), 4,
+                   piece_from(Color::White, PieceType::King),
+                   "White king-side castling requires the white king on e1.");
+    requires_piece(static_cast<uint8_t>(CastlingRights::WhiteKingSide), 7,
+                   piece_from(Color::White, PieceType::Rook),
+                   "White king-side castling requires a white rook on h1.");
+    requires_piece(static_cast<uint8_t>(CastlingRights::WhiteQueenSide), 4,
+                   piece_from(Color::White, PieceType::King),
+                   "White queen-side castling requires the white king on e1.");
+    requires_piece(static_cast<uint8_t>(CastlingRights::WhiteQueenSide), 0,
+                   piece_from(Color::White, PieceType::Rook),
+                   "White queen-side castling requires a white rook on a1.");
+    requires_piece(static_cast<uint8_t>(CastlingRights::BlackKingSide), 60,
+                   piece_from(Color::Black, PieceType::King),
+                   "Black king-side castling requires the black king on e8.");
+    requires_piece(static_cast<uint8_t>(CastlingRights::BlackKingSide), 63,
+                   piece_from(Color::Black, PieceType::Rook),
+                   "Black king-side castling requires a black rook on h8.");
+    requires_piece(static_cast<uint8_t>(CastlingRights::BlackQueenSide), 60,
+                   piece_from(Color::Black, PieceType::King),
+                   "Black queen-side castling requires the black king on e8.");
+    requires_piece(static_cast<uint8_t>(CastlingRights::BlackQueenSide), 56,
+                   piece_from(Color::Black, PieceType::Rook),
+                   "Black queen-side castling requires a black rook on a8.");
+
     result.valid = result.errors.empty();
     return result;
 }
