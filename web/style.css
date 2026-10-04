@@ -1,0 +1,20 @@
+:root { font-family: system-ui, sans-serif; color: #222; background: #f4f1ea; }
+body { margin: 0; }
+main { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+label { display: block; margin: .5rem 0; }
+input { max-width: 100%; }
+.editor { display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap; }
+#board { display: grid; grid-template-columns: repeat(8, 3.5rem); grid-template-rows: repeat(8, 3.5rem); border: 2px solid #333; }
+.square { border: 0; font-size: 2rem; padding: 0; }
+.square.light { background: #f0d9b5; }
+.square.dark { background: #b58863; }
+#palette { display: flex; flex-wrap: wrap; max-width: 15rem; gap: .2rem; }
+#palette button { font-size: 1.5rem; width: 2.5rem; height: 2.5rem; }
+button { margin: .25rem; padding: .4rem .7rem; cursor: pointer; }
+output { display: block; white-space: pre-wrap; margin: .75rem 0; }
+.error { color: #a00; }
+.ok { color: #064; }
+@media (max-width: 500px) {
+  #board { grid-template-columns: repeat(8, 2.6rem); grid-template-rows: repeat(8, 2.6rem); }
+  .square { font-size: 1.5rem; }
+}

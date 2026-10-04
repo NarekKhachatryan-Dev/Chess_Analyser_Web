@@ -1,11 +1,37 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ChessSolver</title>
+    <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <p>ChessSolver web application placeholder.</p>
+    <main>
+      <h1>ChessSolver</h1>
+      <label>FEN <input id="fen" size="70" value="r1b2kr1/ppppn3/5p1p/3P3P/4P1q1/2Q5/PB4P1/nN3RK1 w - - 0 21"></label>
+      <section class="editor">
+        <div id="board" aria-label="Chess board"></div>
+        <div class="controls">
+          <h2>Piece palette</h2>
+          <div id="palette"></div>
+          <label>Side to move
+            <select id="side"><option value="w">White</option><option value="b">Black</option></select>
+          </label>
+          <label>Castling rights <input id="castling" value="-"></label>
+          <label>En passant <input id="ep" value="-"></label>
+          <button id="validate">Validate</button>
+          <output id="validation"></output>
+        </div>
+      </section>
+      <label>Mate in N <input id="depth" type="number" min="1" max="5" value="3"></label>
+      <button id="solve">Solve</button>
+      <button id="cancel" disabled>Cancel</button>
+      <p id="progress" aria-live="polite"></p>
+      <output id="result"></output>
+      <nav><button id="previous" disabled>Previous</button><button id="next" disabled>Next</button></nav>
+      <p id="line"></p>
+    </main>
+    <script type="module" src="app.js"></script>
   </body>
 </html>

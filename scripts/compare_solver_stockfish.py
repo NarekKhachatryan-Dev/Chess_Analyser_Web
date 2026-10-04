@@ -43,6 +43,11 @@ def main() -> int:
         "--data",
         default="tests/data/lichess_mate_puzzles.tsv",
     )
+    parser.add_argument(
+        "--negative",
+        action="store_true",
+        help="check each fixture at one move shorter, skipping mate-in-1",
+    )
     args = parser.parse_args()
 
     fixtures = list(read_fixtures(Path(args.data)))
@@ -67,25 +72,43 @@ def main() -> int:
             pass
 
         for puzzle_id, mate_in, fen in fixtures:
+            requested_mate = mate_in - 1 if args.negative else mate_in
+            if requested_mate < 1:
+                continue
             cli = subprocess.run(
-                [args.chess_cli, "solve", fen, str(mate_in)],
+                [args.chess_cli, "solve", fen, str(requested_mate)],
                 capture_output=True,
                 text=True,
                 check=False,
             )
-            result = re.search(r"^(MateFound|NoMateWithinN) length=(\d+)", cli.stdout)
-            solver_mate = int(result.group(2)) if result and result.group(1) == "MateFound" else None
+            result = re.search(r"^(MateFound|NoMateWithinN|NoLegalMoves)", cli.stdout)
+            solver_status = result.group(1) if result else None
+            solver_mate = (
+                int(re.search(r"length=(\d+)", cli.stdout).group(1))
+                if solver_status == "MateFound"
+                else None
+            )
 
             stockfish.stdin.write(f"position fen {fen}\n")
             stockfish.stdin.flush()
-            stockfish_mate, stockfish_move = read_stockfish(stockfish, mate_in)
-            if cli.returncode != 0 or solver_mate != stockfish_mate:
+            stockfish_mate, stockfish_move = read_stockfish(stockfish, requested_mate)
+            if cli.returncode != 0 or solver_status != "NoMateWithinN" or solver_mate != stockfish_mate:
                 disagreements.append(
                     f"{puzzle_id}: solver={cli.stdout.strip()!r}, "
                     f"stockfish_mate={stockfish_mate}, stockfish_bestmove={stockfish_move}"
                 )
+            elif args.negative and solver_mate is not None:
+                disagreements.append(
+                    f"{puzzle_id}: expected no mate at N={requested_mate}, "
+                    f"solver reported mate {solver_mate}, Stockfish bestmove {stockfish_move}"
+                )
+            elif args.negative and stockfish_mate is not None:
+                disagreements.append(
+                    f"{puzzle_id}: expected no mate at N={requested_mate}, "
+                    f"Stockfish reported mate {stockfish_mate}, solver={cli.stdout.strip()!r}"
+                )
             else:
-                print(f"{puzzle_id}: mate {solver_mate}, Stockfish first move {stockfish_move}")
+                print(f"{puzzle_id}: no mate at N={requested_mate}")
 
         stockfish.stdin.write("quit\n")
         stockfish.stdin.flush()
