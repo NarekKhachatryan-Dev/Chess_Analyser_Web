@@ -3,6 +3,8 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <array>
+#include <utility>
 
 namespace {
 
@@ -128,6 +130,27 @@ int run_bench() {
     const auto stop = std::chrono::steady_clock::now();
     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
     std::cout << "perft_start_d5 nodes=" << nodes << " time_ms=" << elapsed << '\n';
+
+    const std::array<std::pair<const char*, const char*>, 3> hard_positions = {{
+        {"qeP68", "r1b2kr1/ppppn3/5p1p/3P3P/4P1q1/2Q5/PB4P1/nN3RK1 w - - 0 21"},
+        {"46thE", "2rqk2r/pp1nb1p1/4pnp1/3p4/3P3B/2P2N1P/PPQ2PP1/R3K2R w KQk - 0 17"},
+        {"8dZpc", "5r1k/qR4p1/P6p/8/4Q3/2BP2PP/6K1/8 b - - 2 45"},
+    }};
+    for (const auto& [id, fen] : hard_positions) {
+        auto no_table_position = chesslab::Position::from_fen(fen);
+        chesslab::SolveOptions no_table_options;
+        no_table_options.use_move_ordering = true;
+        const auto no_table = chesslab::solve(no_table_position, 4, no_table_options);
+
+        auto table_position = chesslab::Position::from_fen(fen);
+        chesslab::SolveOptions table_options;
+        table_options.use_move_ordering = true;
+        table_options.use_transposition_table = true;
+        const auto table = chesslab::solve(table_position, 4, table_options);
+        std::cout << "solver_" << id << " no_tt_nodes=" << no_table.nodes
+                  << " no_tt_time_ms=" << no_table.elapsed_ms << " tt_nodes=" << table.nodes
+                  << " tt_time_ms=" << table.elapsed_ms << '\n';
+    }
     return 0;
 }
 

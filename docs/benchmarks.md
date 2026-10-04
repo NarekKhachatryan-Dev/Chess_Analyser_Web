@@ -47,3 +47,33 @@ capped at 64 MiB.
 | Lichess mate-in-1 `yxtqU` | 1 | 4 | 0 ms |
 | Lichess mate-in-2 `oiG01` | 2 | 39 | 2 ms |
 | Lichess mate-in-3 `UjZa9` | 3 | 502 | 34 ms |
+
+## Expanded Lichess corpus
+
+The auditable corpus in `tests/data/lichess_mate_puzzles.tsv` contains 30
+mate-in-1, 30 mate-in-2, 20 mate-in-3, and 5 mate-in-4 positions. The
+automated Stockfish comparison completed all 85 fixtures with zero
+disagreements.
+
+## Release build
+
+Command used:
+
+```powershell
+cmake -S . -B build_release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+cmake --build build_release -j
+ctest --test-dir build_release --output-on-failure
+.\build_release\cli\chess_cli.exe bench
+```
+
+Start-position perft depth 5: **4,865,609 nodes in 1,532 ms**.
+
+The following harder real Lichess mate-in-4 fixtures are included in the
+corpus. The benchmark runs iterative deepening with move ordering, comparing
+the same search with and without the capped transposition table.
+
+| Fixture | No-TT nodes | No-TT time | TT nodes | TT time |
+|---|---:|---:|---:|---:|
+| `qeP68` | 2,710 | 32 ms | 2,655 | 32 ms |
+| `46thE` | 62,728 | 852 ms | 55,027 | 651 ms |
+| `8dZpc` | 1,223 | 12 ms | 1,211 | 11 ms |

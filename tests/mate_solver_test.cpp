@@ -49,9 +49,40 @@ TEST_CASE("optimized solver preserves the real puzzle result") {
 }
 
 TEST_CASE("solver distinguishes stalemate from checkmate") {
-    const auto result = solve_fen("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1", 1);
-    CHECK(result.status == chesslab::SolveStatus::NoLegalMoves);
+    const auto result = solve_fen("7k/8/5KQ1/8/8/8/8/8 w - - 0 1", 1);
+    CHECK(result.status == chesslab::SolveStatus::MateFound);
+    CHECK(result.length == 1);
+    REQUIRE_FALSE(result.line.empty());
+    CHECK(chesslab::move_to_uci(result.line.front()) == "g6g7");
 
-    const auto no_mate = solve_fen("7k/5Q2/7K/8/8/8/8/8 b - - 0 1", 1);
-    CHECK(no_mate.status == chesslab::SolveStatus::NoLegalMoves);
+    const auto no_mate = solve_fen("8/8/8/8/8/8/7K/k7 w - - 0 1", 1);
+    CHECK(no_mate.status == chesslab::SolveStatus::NoMateWithinN);
+}
+
+TEST_CASE("side to move with no legal moves is reported explicitly") {
+    const auto no_moves = solve_fen("7k/5Q2/7K/8/8/8/8/8 b - - 0 1", 1);
+    CHECK(no_moves.status == chesslab::SolveStatus::NoLegalMoves);
+}
+
+TEST_CASE("cancelled and timed out searches are not reported as no mate") {
+    auto position = chesslab::Position::from_fen(
+        "r1b2kr1/ppppn1p1/5P1p/3P3P/4P1q1/2Q5/PB4P1/nN3RK1 w - - 1 21");
+    std::atomic_bool cancelled = true;
+    chesslab::SolveOptions cancel_options;
+    cancel_options.cancel = &cancelled;
+    const auto cancelled_result = chesslab::solve(position, 4, cancel_options);
+    CHECK(cancelled_result.status == chesslab::SolveStatus::Cancelled);
+    CHECK(cancelled_result.status != chesslab::SolveStatus::NoMateWithinN);
+
+    auto timed_position = chesslab::Position::from_fen(
+        "r1b2kr1/ppppn1p1/5P1p/3P3P/4P1q1/2Q5/PB4P1/nN3RK1 w - - 1 21");
+    chesslab::SolveOptions timeout_options;
+    timeout_options.time_limit_ms = 1;
+    const auto timeout_result = chesslab::solve(timed_position, 4, timeout_options);
+    CHECK(timeout_result.status != chesslab::SolveStatus::NoMateWithinN);
+}
+
+TEST_CASE("no mate within requested depth is proven") {
+    const auto no_mate = solve_fen("8/8/8/8/8/8/7K/k7 w - - 0 1", 3);
+    CHECK(no_mate.status == chesslab::SolveStatus::NoMateWithinN);
 }
