@@ -10,3 +10,6 @@ CMakeUserPresets.json
 web/chess_engine.js
 web/chess_engine.wasm
 scripts/__pycache__/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
