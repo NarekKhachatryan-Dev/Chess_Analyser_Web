@@ -11,10 +11,19 @@
       <h1>ChessSolver</h1>
       <label>FEN <input id="fen" size="70" value="r1b2kr1/ppppn3/5p1p/3P3P/4P1q1/2Q5/PB4P1/nN3RK1 w - - 0 21"></label>
       <section class="editor">
-        <div id="board" aria-label="Chess board"></div>
+        <div class="board-area">
+          <button id="flip-board" type="button">Flip board</button>
+          <div class="board-frame">
+            <div id="ranks" class="ranks" aria-hidden="true"></div>
+            <div id="board" aria-label="Chess board"></div>
+          </div>
+          <div id="files" class="files" aria-hidden="true"></div>
+        </div>
         <div class="controls">
           <h2>Piece palette</h2>
           <div id="palette"></div>
+          <button id="clear-board" type="button">Clear board</button>
+          <button id="start-position" type="button">Start position</button>
           <label>Side to move
             <select id="side"><option value="w">White</option><option value="b">Black</option></select>
           </label>
@@ -25,7 +34,8 @@
         </div>
       </section>
       <label>Mate in N <input id="depth" type="number" min="1" max="5" value="3"></label>
-      <button id="solve">Solve</button>
+      <p id="depth-error" class="status error" role="alert"></p>
+      <button id="solve" class="primary">Solve</button>
       <button id="cancel" disabled>Cancel</button>
       <p id="progress" aria-live="polite"></p>
       <output id="result"></output>

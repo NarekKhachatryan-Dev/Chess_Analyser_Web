@@ -96,3 +96,11 @@ TEST_CASE("castling rights require their king and rook home squares") {
         chesslab::Position::from_fen("4k3/8/8/8/8/8/8/4K3 w q - 0 1"));
     CHECK_FALSE(black_queen_side_missing_rook.valid);
 }
+
+TEST_CASE("FEN castling rights accept any order and reject malformed text") {
+    const auto position = chesslab::Position::from_fen("r3k2r/8/8/8/8/8/8/R3K2R w kqKQ - 0 1");
+    CHECK(position.to_fen() == "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1");
+    CHECK_THROWS(chesslab::Position::from_fen("r3k2r/8/8/8/8/8/8/R3K2R w KQK - 0 1"));
+    CHECK_THROWS(chesslab::Position::from_fen("r3k2r/8/8/8/8/8/8/R3K2R w KX - 0 1"));
+    CHECK_THROWS(chesslab::Position::from_fen("r3k2r/8/8/8/8/8/8/R3K2R w K- - 0 1"));
+}

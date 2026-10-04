@@ -9,6 +9,9 @@
 
 namespace {
 
+constexpr int kMaxMateIn = 5;
+constexpr uint64_t kDefaultTimeLimitMs = 30000;
+
 char* copy_json(const std::string& value) {
     char* result = static_cast<char*>(std::malloc(value.size() + 1));
     if (result == nullptr) {
@@ -56,11 +59,15 @@ extern "C" const char* solve_depth(const char* fen, int mate_in) {
         if (fen == nullptr) {
             throw std::invalid_argument("FEN is null");
         }
+        if (mate_in < 1 || mate_in > kMaxMateIn) {
+            return copy_json("{\"status\":\"Error\",\"error\":\"Mate depth must be between 1 and 5\"}");
+        }
         auto position = chesslab::Position::from_fen(fen);
         chesslab::SolveOptions options;
         options.use_move_ordering = true;
         options.use_transposition_table = true;
         options.transposition_table_size_mb = 16;
+        options.time_limit_ms = kDefaultTimeLimitMs;
         const auto result = chesslab::solve_depth(position, mate_in, options);
         std::ostringstream json;
         json << "{\"status\":\"" << status_name(result.status) << "\",\"length\":" << result.length

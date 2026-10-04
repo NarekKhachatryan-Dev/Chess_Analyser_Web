@@ -3,6 +3,7 @@
 #include <cctype>
 #include <sstream>
 #include <stdexcept>
+#include <set>
 
 namespace chesslab {
 namespace {
@@ -110,6 +111,18 @@ Position Position::from_fen(const std::string& fen) {
     }
 
     pos.side_to_move = side_part == "w" ? Color::White : Color::Black;
+
+    if (castling_part != "-") {
+        if (castling_part.empty()) {
+            throw std::invalid_argument("Invalid castling rights");
+        }
+        std::set<char> seen;
+        for (char ch : castling_part) {
+            if ((ch != 'K' && ch != 'Q' && ch != 'k' && ch != 'q') || !seen.insert(ch).second) {
+                throw std::invalid_argument("Invalid castling rights");
+            }
+        }
+    }
 
     for (char ch : castling_part) {
         switch (ch) {
