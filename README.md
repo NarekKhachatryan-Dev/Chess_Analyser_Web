@@ -132,6 +132,16 @@ The checked-in corpus currently has 55 eligible rows (30 mate-in-2,
 20 mate-in-3, and 5 mate-in-4). A Stockfish mate longer than the requested
 N-1 is not a disagreement.
 
+## Verify in a clean Linux environment (Docker)
+
+This optional check builds the project in Docker and runs the Stockfish
+comparison in the clean image:
+
+```bash
+docker build -t chesssolver-test .
+docker run --rm chesssolver-test python3 scripts/compare_solver_stockfish.py --chess-cli ./build/cli/chess_cli --stockfish /usr/games/stockfish
+```
+
 ## Limits and cancellation
 
 - `MAX_N` is 5.
