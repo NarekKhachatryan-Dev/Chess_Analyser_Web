@@ -24,29 +24,28 @@ web app. The former duplicate root `assets/` directory was removed.
 
 ### Windows PowerShell with MinGW
 
-Install CMake, a MinGW C++17 toolchain, Python 3, and Node.js first:
+Install CMake, MinGW-w64 (`g++`), Python 3, and Node.js first. Make sure
+CMake and MinGW-w64 (`g++`) are on `PATH`:
 
 ```powershell
-cmake -S . -B build_debug -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug
-cmake --build build_debug
-ctest --test-dir build_debug --output-on-failure
-
-cmake -S . -B build_release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
-cmake --build build_release
-ctest --test-dir build_release --output-on-failure
+cmake --preset windows
+cmake --build --preset windows -j
+ctest --preset windows
 ```
 
 ### Linux
 
 ```bash
-cmake -S . -B build_debug -DCMAKE_BUILD_TYPE=Debug
-cmake --build build_debug -j
-ctest --test-dir build_debug --output-on-failure
-
-cmake -S . -B build_release -DCMAKE_BUILD_TYPE=Release
-cmake --build build_release -j
-ctest --test-dir build_release --output-on-failure
+cmake --preset linux
+cmake --build --preset linux -j
+ctest --preset linux
 ```
+
+Use `windows-debug` or `linux-debug` in place of the preset name for a Debug
+build. As an alternative, the manual commands remain available:
+`cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release`,
+`cmake --build build`, and `ctest --test-dir build --output-on-failure`
+(use `-G "Unix Makefiles"` on Linux).
 
 ## CLI
 

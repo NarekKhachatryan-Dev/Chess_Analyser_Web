@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.16...3.31)
 
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
+    message(FATAL_ERROR
+        "In-source builds are not supported. Use \"cmake --preset windows\" "
+        "(or \"cmake --preset linux\") instead."
+    )
+endif()
+
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 project(ChessLab LANGUAGES CXX)

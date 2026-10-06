@@ -4,5 +4,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY . .
-RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
-RUN ctest --test-dir build --output-on-failure
+RUN cmake --preset linux && cmake --build --preset linux -j
+RUN ctest --preset linux
