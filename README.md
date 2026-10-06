@@ -5,6 +5,18 @@ to WebAssembly for a plain JavaScript web application. It searches whether the
 side to move can force checkmate within N of its own moves, and displays a
 longest-defence mating line.
 
+## Quick start on Windows
+
+For a one-click start, double-click `run_web.bat`. It builds the missing WASM
+files when needed, starts the static server, and opens the app in your default
+browser. Keep the window open and press Ctrl+C to stop the server.
+
+Alternatively, run the launcher manually from PowerShell:
+
+```powershell
+.\scripts\run_web.ps1
+```
+
 ## Layout
 
 - `engine/` - the C++17 engine, legal move generation, validation, perft, and
